@@ -1,0 +1,30 @@
+@startuml
+title NextBeats - High-level Architecture
+skinparam componentStyle rectangle
+
+actor "User Browser" as Browser
+component "Client cache / Prefetch" as Cache
+component "Next.js App (App Router)\n- Server Components\n- Client Components\n- React Compiler" as NextApp
+component "Server Functions / API Routes\n(updateTag, mutations)" as ServerFuncs
+component "Audio Engine\n(lib/audio)" as Audio
+component "Prisma Client\n(lib/db.ts)" as Prisma
+database "Postgres / SQLite (prisma)" as DB
+component "Playwright E2E (tests/)" as Playwright
+
+Browser --> Cache : prefetch / instant nav
+Cache --> NextApp : serve prefetched shell
+Browser --> NextApp : navigation / requests
+NextApp --> ServerFuncs : invoke mutations / updateTag
+ServerFuncs --> Prisma : DB queries
+Prisma --> DB : SQL
+NextApp --> Audio : Web Audio UI + scheduling
+Browser -> Audio : Web Audio API (client)
+Playwright --> Browser : automated E2E
+Playwright --> NextApp : builds/tests via pnpm
+
+note right of NextApp
+Uses Cache Components, instant(),
+Server Functions and React Compiler
+end note
+
+@enduml
