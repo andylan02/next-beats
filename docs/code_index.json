@@ -1,0 +1,41 @@
+{
+  "entries": {
+    "lib/db.ts": {
+      "exports": ["prisma"],
+      "purpose": "Prisma client initialization with PrismaPg adapter; central DB access for server-side code.",
+      "callers": [
+        "app/api/play/route.ts",
+        "features/track/track-actions.ts",
+        "features/playlist/playlist-actions.ts",
+        "features/playlist/playlist-queries.ts",
+        "features/track/track-queries.ts"
+      ]
+    },
+    "app/api/play/route.ts": {
+      "exports": ["POST"],
+      "purpose": "Server route to record a play event: increments track.playCount and upserts userTrackPlay. Revalidates tags.",
+      "db_calls": ["prisma.track.update","prisma.userTrackPlay.upsert"],
+      "tags": ["recently-played:<user>", "discover:<user>"]
+    },
+    "features/track/track-actions.ts": {
+      "exports": ["toggleFavorite"],
+      "purpose": "Server action to toggle a user's favorite; updates DB and invalidates tags.",
+      "db_calls": ["prisma.userFavorite.findUnique","prisma.userFavorite.create","prisma.userFavorite.delete"],
+      "tags": ["track-<id>:<user>", "favorites:<user>", "discover:<user>"]
+    },
+    "features/playlist/playlist-actions.ts": {
+      "exports": ["createPlaylist","addToPlaylist","removeFromPlaylist","deletePlaylist"],
+      "purpose": "Server actions for playlist mutations. Create/delete playlist and manage playlistTrack rows; call updateTag.",
+      "db_calls": ["prisma.playlist.create","prisma.playlistTrack.create","prisma.playlistTrack.delete","prisma.playlist.delete"],
+      "tags": ["playlists:<user>", "playlist-<id>"]
+    },
+    "lib/audio/music-engine.ts": {
+      "exports": ["getAudioContext","resetAudioContext","scheduleBar","getSecondsPerBar"],
+      "purpose": "Procedural music generation using Web Audio API; deterministic per-track synthesis."
+    },
+    "lib/audio/audio-scheduler.ts": {
+      "exports": ["createAudioRefs","scheduleTrack","resumeTrack","stopAll"],
+      "purpose": "Client-side audio scheduling used by PlayerProvider; manages bars, progress, crossfade."
+    }
+  }
+}
