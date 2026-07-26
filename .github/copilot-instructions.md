@@ -91,3 +91,76 @@ Questions / next steps
 - Configure MCP servers? This repo has Playwright E2E — would you like an MCP server configured for Playwright (recommended)?
 
 If anything else should be added (extra CI steps, matrix testing, or Windows-native scripts), say which area and Copilot will update this file.
+
+---
+
+Repository-specific agent rules (added from session histroy findings)
+
+1) Network & git push guidance
+- Before attempting a push, always show a short checklist: branch name, local HEAD (git --no-pager log --oneline -n1), and list of files changed.
+- Retry commands to suggest when a push fails: `git -c http.postBuffer=524288000 -c http.lowSpeedLimit=0 -c http.lowSpeedTime=999999 push origin <branch>` and SSH fallback `git@github.com:owner/repo.git`.
+- If network errors repeat (curl 28 or connection reset), prefer offering the commit details and instructing the user to push locally rather than auto-retrying.
+
+2) Local-commit transparency
+- For multi-file changes, add a short commit-summary block in the assistant response (commit SHA, brief bullet list of added/modified files, and whether pushed). Offer explicit actions: Show commit details / Retry push / Wait.
+- Do not retry pushes without user confirmation after a failed attempt.
+
+3) Duplicate-question handling
+- If the user asks the same small factual question within a short time window (e.g., "今天是星期几?", "CLI 版本?"), respond once with a concise canonical answer including timestamp, then reference the prior reply for duplicates instead of repeating investigation commands.
+- When the user requests re-checks (e.g., /version), rerun the canonical check commands but otherwise cite the stored answer.
+
+4) Model & CLI-check commands
+- Use these canonical checks when asked about environment or availability:
+  - `/model` — list or select model
+  - `/version` — show CLI version
+  - `/update` — check for CLI updates
+  - `/login` — confirm authentication
+- When answering "can I use it?" include: current date (ISO), CLI version, active model, and note if network-dependent operations may fail.
+
+---
+
+Would you like any wording changes or additional rules to be included?
+
+
+<!-- headroom:rtk-instructions -->
+# RTK (Rust Token Killer) - Token-Optimized Commands
+
+When running shell commands, **always prefix with `rtk`**. This reduces context
+usage by 60-90% with zero behavior change. If rtk has no filter for a command,
+it passes through unchanged — so it is always safe to use.
+
+## Key Commands
+```bash
+# Git (59-80% savings)
+rtk git status          rtk git diff            rtk git log
+
+# Files & Search (60-75% savings)
+rtk ls <path>           rtk read <file>         rtk grep <pattern>
+rtk find <pattern>      rtk diff <file>
+
+# Test (90-99% savings) — shows failures only
+rtk pytest tests/       rtk cargo test          rtk test <cmd>
+
+# Build & Lint (80-90% savings) — shows errors only
+rtk tsc                 rtk lint                rtk cargo build
+rtk prettier --check    rtk mypy                rtk ruff check
+
+# Analysis (70-90% savings)
+rtk err <cmd>           rtk log <file>          rtk json <file>
+rtk summary <cmd>       rtk deps                rtk env
+
+# GitHub (26-87% savings)
+rtk gh pr view <n>      rtk gh run list         rtk gh issue list
+
+# Infrastructure (85% savings)
+rtk docker ps           rtk kubectl get         rtk docker logs <c>
+
+# Package managers (70-90% savings)
+rtk pip list            rtk pnpm install        rtk npm run <script>
+```
+
+## Rules
+- In command chains, prefix each segment: `rtk git add . && rtk git commit -m "msg"`
+- For debugging, use raw command without rtk prefix
+- `rtk proxy <cmd>` runs command without filtering but tracks usage
+<!-- /headroom:rtk-instructions -->
