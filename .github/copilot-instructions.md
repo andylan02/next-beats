@@ -4,7 +4,8 @@ Purpose
 - Short guide for Copilot sessions to understand repository layout, build/test/lint commands, and repository-specific conventions.
 
 Build / Test / Lint (how to run)
-- Install: `pnpm install` (project uses pnpm@10.x as package manager).
+- Package manager: pnpm (packageManager: pnpm@10.33.0 in package.json). Use pnpm@10.x locally and in CI.
+- Install: `pnpm install` (CI: `pnpm install --frozen-lockfile`).
 - Dev: `pnpm run dev` (local Next dev server).
 - Build: `pnpm run build` (runs `prisma generate && next build`).
 - Start (production): `pnpm run start` (expects a built app).
@@ -20,14 +21,15 @@ Lint & formatting
 - Format: `pnpm run format` (prettier).
 - Lint: `pnpm run lint`.
 - Lint (fix): `pnpm run lint:fix`.
-- To lint a single file: `pnpm run lint -- path/to/file` (or call `eslint path/to/file`).
-- To format a single file: `pnpm run format -- path/to/file` (or `prettier --write path/to/file`).
+- To lint a single file: `pnpm run lint -- path/to/file` (or `npx eslint path/to/file`).
+- To format a single file: `pnpm run format -- path/to/file` (or `npx prettier --write path/to/file`).
 
 End-to-end tests (Playwright)
 - E2E script: `pnpm run test:e2e` (runs `playwright test`).
 - Run a single Playwright test file: `pnpm run test:e2e -- tests/track-page.spec.ts`.
-- Run a single test title or grep: `pnpm run test:e2e -- -g "pattern"` or use Playwright flags as needed.
+- Run a single test title: `pnpm run test:e2e -- -g "Exact test title"` (quotes required for spaces).
 - Playwright config: `playwright.config.ts` uses `tests/` and a webServer that runs `pnpm dev --port 3002` with `beats-user` cookie pre-seeded for e2e auth. Default baseURL: `http://localhost:3002`.
+- To run E2E locally like CI: ensure Postgres or run the provided `scripts/ci-e2e.sh` under WSL/macOS with Docker.
 
 High-level architecture (big picture)
 - Next.js 16.3 App Router project (app/). The repo uses the new App Router features: server components, Server Functions (app/api/* routes), Cache Components and cache tags (`revalidateTag`) and Instant Navigations features.
