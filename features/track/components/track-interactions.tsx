@@ -1,11 +1,10 @@
 'use client';
 
 import { Heart, Play } from 'lucide-react';
-import Link from 'next/link';
 import { useOptimistic, useTransition } from 'react';
 import { Boundary } from '@/components/demo/boundary';
-import { usePrefetchDefault } from '@/components/demo/prefetch-provider';
 import { Equalizer } from '@/components/ui/equalizer';
+import { PrefetchLink } from '@/components/ui/prefetch-link';
 import { toggleFavorite } from '@/features/track/track-actions';
 import { cn } from '@/lib/utils';
 import { usePlayer } from '@/providers/player-provider';
@@ -60,11 +59,9 @@ export function TrackLink({
   children: React.ReactNode;
   className?: string;
 }) {
-  const prefetch = usePrefetchDefault();
   return (
-    <Link
+    <PrefetchLink
       href={href as Route}
-      prefetch={prefetch}
       onClick={e => e.stopPropagation()}
       className={cn(
         'cursor-default truncate text-sm font-medium hover:cursor-pointer hover:underline',
@@ -72,7 +69,7 @@ export function TrackLink({
       )}
     >
       {children}
-    </Link>
+    </PrefetchLink>
   );
 }
 
@@ -142,14 +139,19 @@ export function TrackIndexCell({ trackId, index }: { trackId: string; index?: nu
     <span className="w-5 text-right">
       {index !== undefined ? (
         <>
-          <span className="text-muted font-mono text-xs group-hover/track:hidden">{index + 1}</span>
+          <span className="text-muted font-mono text-xs group-hover/track:hidden [@media(hover:none)]:hidden">
+            {index + 1}
+          </span>
           <Play
-            className="hidden h-3.5 w-3.5 text-black group-hover/track:inline dark:text-white"
+            className="hidden h-3.5 w-3.5 text-black group-hover/track:inline dark:text-white [@media(hover:none)]:inline"
             fill="currentColor"
           />
         </>
       ) : (
-        <Play className="hidden h-3.5 w-3.5 text-black group-hover/track:inline dark:text-white" fill="currentColor" />
+        <Play
+          className="hidden h-3.5 w-3.5 text-black group-hover/track:inline dark:text-white [@media(hover:none)]:inline"
+          fill="currentColor"
+        />
       )}
     </span>
   );
@@ -166,11 +168,14 @@ export function FavoriteButton({
 }) {
   const [, startTransition] = useTransition();
   const [optimisticFavorite, setOptimisticFavorite] = useOptimistic(isFavorite);
+  const [removing, setRemoving] = useOptimistic(false);
 
   function handleToggle(e: React.MouseEvent) {
     e.stopPropagation();
+    const willRemove = optimisticFavorite;
     startTransition(async () => {
       setOptimisticFavorite(!optimisticFavorite);
+      if (willRemove) setRemoving(true);
       await toggleFavorite(trackId);
     });
   }
@@ -180,6 +185,7 @@ export function FavoriteButton({
       <button
         type="button"
         onClick={handleToggle}
+        data-removing={removing || undefined}
         aria-label={optimisticFavorite ? 'Remove from favorites' : 'Add to favorites'}
         className={cn(
           'rounded-full transition-colors',
