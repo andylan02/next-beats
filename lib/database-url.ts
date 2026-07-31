@@ -9,6 +9,9 @@
 // can connect. Remote URLs like Neon never set `disable`, so they still get
 // upgraded to `verify-full`.
 export function normalizeDatabaseUrl(url: string): string {
+    if (url) {
+        return url;
+    }
   const u = new URL(url);
   if (u.searchParams.get('sslmode') !== 'disable') {
     u.searchParams.set('sslmode', 'verify-full');

@@ -1,0 +1,98 @@
+@startuml
+title NextBeats — Full Component Sequence
+skinparam sequenceArrowColor #333
+
+actor "User Browser" as Browser
+participant "Client UI (Next.js)" as UI
+participant "Client Cache / Prefetch" as Cache
+participant "Next.js Server (App Router)" as NextApp
+participant "Server Functions" as SF
+participant "Audio Engine (lib/audio)" as Audio
+participant "Prisma Client (lib/db.ts)" as Prisma
+database "Postgres / SQLite (prisma)" as DB
+participant "CDN / Edge Cache (optional)" as CDN
+participant "Playwright (E2E)" as Playwright
+
+== Navigation & Prefetch ==
+Browser -> UI : hover / viewport triggers prefetch
+activate UI
+UI -> Cache : check client cache for prefetched App Shell
+Cache --> UI : serve prefetched shell (instant)
+UI -> NextApp : request route data (if not prefetched)
+NextApp --> Cache : read server cache tag / cache components
+Cache --> NextApp : cached fragments or miss
+NextApp -> Prisma : read page hydrated data
+Prisma -> DB : SELECT ...
+DB --> Prisma : rows
+Prisma --> NextApp : data
+NextApp --> UI : render server component response
+deactivate UI
+
+== Play Track (start playback) ==
+Browser -> UI : Click Play
+activate UI
+UI -> Audio : schedule and start playback (Web Audio API)
+activate Audio
+Audio -> UI : playback started (local)
+note right of Audio
+Audio scheduling and synthesis happens client-side.
+Server only tracks analytic events.
+end note
+UI -> SF : fire-and-forget analytics event (optional)
+activate SF
+SF -> Prisma : insert play event
+Prisma -> DB : INSERT
+DB --> Prisma : OK
+Prisma --> SF : success
+SF --> UI : 202 Accepted (if awaited)
+deactivate SF
+Audio --> Browser : sound output
+deactivate Audio
+
+== Favorite Track (optimistic) ==
+Browser -> UI : click Favorite (optimistic)
+activate UI
+UI -> SF : Server Function /api/favorite(trackId)
+activate SF
+SF -> Prisma : upsert favorite(user, track)
+Prisma -> DB : write
+DB --> Prisma : OK
+Prisma --> SF : success
+SF -> SF : updateTag("track:<id>")
+SF --> UI : confirm favorite
+deactivate SF
+UI -> Cache : trigger selective revalidation
+Cache --> UI : refreshed content on next navigation
+deactivate UI
+
+== Create Playlist (mutating data) ==
+Browser -> UI : Create playlist form submit
+activate UI
+UI -> SF : /api/create-playlist(payload)
+activate SF
+SF -> Prisma : insert playlist + relations
+Prisma -> DB : multiple INSERTs
+DB --> Prisma : OK
+Prisma --> SF : success
+SF -> SF : updateTag("playlists:user:<id>")
+SF --> UI : 201 Created
+deactivate SF
+UI -> Cache : request revalidation for playlist tag
+Cache --> UI : new playlist visible after revalidation
+deactivate UI
+
+== Cache Invalidation & Revalidation Flow ==
+SF -> CDN : (optional) purge edge cache or signal
+SF -> Cache : updateTag(tag) -> mark cache entries stale
+note right
+Server Functions call updateTag to selectively revalidate
+only affected cache components / pages.
+end note
+Cache --> NextApp : serve fresh content on next request
+
+== E2E (Playwright) flow ==
+Playwright -> Browser : start test with beats-user cookie
+Playwright -> NextApp : start webServer (via pnpm dev)
+Playwright -> Browser : drive UI (navigation, play, favorite)
+
+@enduml

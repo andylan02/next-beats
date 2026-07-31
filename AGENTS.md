@@ -7,3 +7,14 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs for this repo live in GitHub Issues (repo: andylan02/next-beats). See `docs/agents/issue-tracker.md` for the CLI commands and conventions.
+
+### Domain docs
+
+Single-context layout is recommended for this repository. See `docs/agents/domain.md` for how to consume `CONTEXT.md` and `docs/adr/`.
+

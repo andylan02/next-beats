@@ -1,0 +1,36 @@
+@startuml
+title Server Functions -> Prisma Call Graph
+actor "User Browser" as Browser
+participant "app/api/play/route.ts" as PlayAPI
+participant "features/track/track-actions.ts" as TrackActions
+participant "features/playlist/playlist-actions.ts" as PlaylistActions
+participant "prisma (lib/db.ts)" as Prisma
+
+Browser -> PlayAPI : POST /api/play {trackId}
+PlayAPI -> Prisma : track.update(where: {id}, data: {playCount: {increment:1}})
+PlayAPI -> Prisma : userTrackPlay.upsert({...})
+PlayAPI -> PlayAPI : revalidateTag("recently-played:<user>")
+
+Browser -> TrackActions : toggleFavorite(trackId)
+TrackActions -> Prisma : userFavorite.findUnique(...)
+alt existing
+  TrackActions -> Prisma : userFavorite.delete(...)
+else not existing
+  TrackActions -> Prisma : userFavorite.create(...)
+end
+TrackActions -> TrackActions : updateTag("track-<id>:<user>")
+TrackActions -> TrackActions : updateTag("favorites:<user>")
+TrackActions -> TrackActions : revalidateTag("discover:<user>")
+
+Browser -> PlaylistActions : createPlaylist(form)
+PlaylistActions -> PlaylistActions : verifyAuth()
+PlaylistActions -> Prisma : playlist.create({...})
+PlaylistActions -> PlaylistActions : updateTag("playlists:<user>")
+
+Browser -> PlaylistActions : addToPlaylist(playlistId, trackId)
+PlaylistActions -> Prisma : playlistTrack.findUnique(...)
+PlaylistActions -> Prisma : playlistTrack.create({...})
+PlaylistActions -> PlaylistActions : updateTag("playlist-<id>")
+PlaylistActions -> PlaylistActions : updateTag("playlists:<user>")
+
+@enduml

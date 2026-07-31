@@ -1,0 +1,28 @@
+@startuml
+title Track Feature — Call Flow (Play / Favorite / Queries)
+actor "Browser / UI" as UI
+participant "Play API (route)" as PlayAPI
+participant "TrackActions (server)" as TrackActions
+participant "TrackQueries" as Queries
+participant "Prisma (lib/db)" as Prisma
+
+UI -> PlayAPI : POST /api/play { trackId }
+PlayAPI -> Prisma : track.update(playCount++)
+PlayAPI -> Prisma : userTrackPlay.upsert(...)
+PlayAPI -> PlayAPI : revalidateTag(recently-played:<user>)
+
+UI -> TrackActions : toggleFavorite(trackId)
+TrackActions -> Prisma : userFavorite.findUnique(...)
+alt exists
+  TrackActions -> Prisma : userFavorite.delete(...)
+else
+  TrackActions -> Prisma : userFavorite.create(...)
+end
+TrackActions -> TrackActions : updateTag(track-<id>:<user>), updateTag(favorites:<user>)
+TrackActions -> TrackActions : revalidateTag(discover:<user>)
+
+UI -> Queries : getTrack(id) / getFavorites() / getRecentlyPlayed()
+Queries -> Prisma : track.findUnique / userFavorite.findMany / userTrackPlay.findMany
+Queries --> UI : data (cached via cacheTag)
+
+@enduml

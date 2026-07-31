@@ -1,0 +1,20 @@
+@startuml
+title Audio Feature — Client Scheduling & Engine
+actor "Browser / UI" as UI
+participant "PlayerProvider (client)" as Player
+participant "AudioScheduler (lib/audio)" as Scheduler
+participant "MusicEngine (lib/audio)" as Engine
+
+UI -> Player : click Play(trackId)
+Player -> Scheduler : scheduleTrack(trackId, genre, duration, refs, onProgress, onEnd)
+Scheduler -> Engine : resetAudioContext() / getSecondsPerBar()
+Scheduler -> Engine : scheduleBar(...) // repeated per-bar
+Scheduler --> Player : progress events / onEnd
+Player --> UI : update UI (progress, end)
+
+note right
+Audio engine is client-side using Web Audio API.
+Server receives analytics events separately.
+end note
+
+@enduml

@@ -1,0 +1,38 @@
+@startuml
+title Favorite Track — Interaction Sequence
+actor "User Browser" as Browser
+participant "Client UI (Next.js)" as UI
+participant "Client Cache / Prefetch" as Cache
+participant "Server Function (favorite)" as SF
+participant "Prisma Client (lib/db.ts)" as Prisma
+database "Postgres / SQLite (prisma)" as DB
+
+Browser -> UI : Click "Favorite" (optimistic UI)
+activate UI
+UI -> SF : call Server Function /api/favorite (trackId)
+activate SF
+SF -> Prisma : upsert favorite (userId, trackId)
+activate Prisma
+Prisma -> DB : write favorite row
+DB --> Prisma : OK
+deactivate Prisma
+Prisma --> SF : success
+SF -> SF : updateTag("track:<id>")
+SF --> UI : 200 OK (confirmed favorite)
+deactivate SF
+UI -> Cache : request revalidation / tag invalidation
+note right of Cache
+Server-side caches tied to cache-tags
+are revalidated for affected routes
+end note
+Cache --> UI : new content on next navigation / re-fetch
+Browser <-- UI : UI state reflects favorited status
+deactivate UI
+
+note over SF,UI
+Optimistic update: UI may show favorited before server
+response; server is source-of-truth and triggers
+selective cache revalidation via updateTag.
+end note
+
+@enduml

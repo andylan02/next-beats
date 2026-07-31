@@ -1,0 +1,26 @@
+@startuml
+title Playlist Feature — Call Flow
+actor "Browser / UI" as UI
+participant "CreatePlaylist (server)" as Create
+participant "AddToPlaylist (server)" as Add
+participant "PlaylistQueries" as Queries
+participant "Prisma (lib/db)" as Prisma
+
+UI -> Create : createPlaylist(form)
+Create -> Prisma : playlist.create(data)
+Create -> Create : updateTag("playlists:<user>")
+Create --> UI : return playlist
+
+UI -> Add : addToPlaylist(playlistId, trackId)
+Add -> Prisma : playlistTrack.findUnique(...)
+alt not exists
+  Add -> Prisma : playlistTrack.create(...)
+  Add -> Add : updateTag("playlist-<id>"), updateTag("playlists:<user>")
+end
+Add --> UI : ok
+
+UI -> Queries : getPlaylists()
+Queries -> Prisma : playlist.findMany(...)
+Queries --> UI : playlists
+
+@enduml
